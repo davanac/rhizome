@@ -1,0 +1,108 @@
+name: Publish Backend Package
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/publish.yml'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci --production
+
+      - name: Create deployment package
+        working-directory: backend
+        run: |
+          # Create a clean deployment directory
+          mkdir -p ../deploy/backend
+
+          # Copy application files
+          cp -r src ../deploy/backend/
+          cp package.json package-lock.json ../deploy/backend/
+          cp -r node_modules ../deploy/backend/
+          cp -r migrations ../deploy/backend/
+          cp .node-pg-migrate.json ../deploy/backend/
+
+          # Copy startup script
+          cp start.sh ../deploy/backend/
+          chmod +x ../deploy/backend/start.sh
+
+          # Copy environment template if it exists
+          if [ -f .env.example ]; then
+            cp .env.example ../deploy/backend/
+          fi
+
+          # Create version file
+          echo "BUILD_VERSION=${GITHUB_SHA::8}" > ../deploy/backend/version.txt
+          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> ../deploy/backend/version.txt
+          echo "BUILD_BRANCH=${GITHUB_REF_NAME}" >> ../deploy/backend/version.txt
+
+      - name: Create ZIP archive
+        run: |
+          cd deploy
+          zip -r rhizome-backend.zip backend/
+
+          # Get version info
+          VERSION="${GITHUB_SHA::8}"
+          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload artifacts to Scaleway Object Storage
+        env:
+          AWS_DEFAULT_REGION: ${{ vars.SCALEWAY_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ vars.SCALEWAY_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+          ARTIFACTS_BUCKET: ${{ vars.ARTIFACTS_BUCKET }}
+        run: |
+          VERSION=${{ env.PACKAGE_VERSION }}
+          PACKAGE_FILE="deploy/rhizome-backend.zip"
+
+          if [ ! -f "$PACKAGE_FILE" ]; then
+            echo "Error: $PACKAGE_FILE not found"
+            exit 1
+          fi
+
+          echo "Found package: $PACKAGE_FILE"
+          echo "Package size: $(du -h $PACKAGE_FILE | cut -f1)"
+
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          sudo ./aws/install --update
+
+          # Upload versioned package
+          aws s3 cp "$PACKAGE_FILE" \
+            "s3://${ARTIFACTS_BUCKET}/backend/rhizome-backend-${VERSION}.zip" \
+            --endpoint-url "https://s3.${AWS_DEFAULT_REGION}.scw.cloud" \
+            --region "${AWS_DEFAULT_REGION}"
+
+          # Upload with 'latest' tag for easy deployment
+          aws s3 cp "$PACKAGE_FILE" \
+            "s3://${ARTIFACTS_BUCKET}/backend/rhizome-backend-latest.zip" \
+            --endpoint-url "https://s3.${AWS_DEFAULT_REGION}.scw.cloud" \
+            --region "${AWS_DEFAULT_REGION}"
+
+          echo "✅ Package uploaded successfully!"
+          echo "📦 Version: $VERSION"
+          echo "🔗 Bucket: https://${ARTIFACTS_BUCKET}.s3.${AWS_DEFAULT_REGION}.scw.cloud/"
+          echo "📥 Download URL: https://${ARTIFACTS_BUCKET}.s3.${AWS_DEFAULT_REGION}.scw.cloud/backend/rhizome-backend-latest.zip"

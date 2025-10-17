@@ -1,0 +1,197 @@
+#cloud-config
+
+# Create rhizome user with sudo access for service management
+users:
+  - default
+  - name: rhizome
+    groups: users
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+# Write application configuration files (must come before runcmd)
+write_files:
+  # Rhizome default configuration
+  - path: /etc/default/rhizome
+    content: |
+      # Optimism
+      OPTIMISM_RPC_URL=https://mainnet.optimism.io/
+      OPTIMISM_CHAIN_ID=10
+      OPTIMISM_EXPLORER_URL=https://optimistic.etherscan.io/
+      OPTIMISM_CHAIN_NAME=OPMainnet
+
+      NODE_ENV=production
+      BLOCKCHAIN_ENV=optimism
+
+      CFR_FILE_PATH=/etc/rhizome/cfr.json
+      MASTER_KEY_ID=${master_key_id}
+      MASTER_KEY_PASSWORD=${master_key_password}
+
+      PORT=3000
+      EXTERNAL_API_URL=${external_url}
+      JWT_SECRET='${jwt_secret}'
+
+      # Database configuration
+      DB_HOST=${database_host}
+      DB_PORT=${database_port}
+      DB_NAME=${database_name}
+      DB_USER=${database_username}
+      DB_PASS='${database_password}'
+
+    permissions: '0644'
+    owner: root:root
+
+  # Rhizome systemd service
+  - path: /etc/systemd/system/rhizome.service
+    content: |
+      [Unit]
+      Description=Rhizome Server
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      EnvironmentFile=-/etc/default/rhizome
+      User=rhizome
+      Group=rhizome
+      Type=simple
+      Restart=always
+      RestartSec=30
+      ExecStart=/home/rhizome/backend/start.sh
+      WorkingDirectory=/home/rhizome
+
+      # Increase the default file descriptor limit
+      LimitNOFILE=32768
+
+      # Security hardening
+      NoNewPrivileges=yes
+      PrivateTmp=yes
+      PrivateDevices=yes
+      DevicePolicy=closed
+      ProtectSystem=strict
+      ReadWritePaths=/home/rhizome/logs/ /home/rhizome/backend/uploads/
+      ProtectHome=read-only
+      ProtectControlGroups=yes
+      ProtectKernelModules=yes
+      ProtectKernelTunables=yes
+      RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+      RestrictNamespaces=yes
+      RestrictRealtime=yes
+      RestrictSUIDSGID=yes
+      MemoryDenyWriteExecute=no
+      LockPersonality=yes
+      UMask=0077
+
+      [Install]
+      WantedBy=multi-user.target
+    permissions: '0644'
+    owner: root:root
+
+# Create required directories and install software
+runcmd:
+  # Create wallet directory and file (must be first, before write_files runs)
+  - mkdir -p /etc/rhizome
+  - |
+    cat > /etc/rhizome/cfr.json << 'EOF'
+    {
+      "${master_key_id}": "${wallet_encrypted_private_key}"
+    }
+    EOF
+  - chown rhizome:rhizome /etc/rhizome
+  - chown rhizome:rhizome /etc/rhizome/cfr.json
+  - chmod 750 /etc/rhizome
+  - chmod 600 /etc/rhizome/cfr.json
+
+  # Install AWS CLI first (snap seems more reliable early on)
+  - snap install aws-cli --classic
+
+  # Wait longer for network to stabilize, then install packages with retry
+  - sleep 10
+  - for i in 1 2 3 4 5; do apt-get update && apt-get install -y curl unzip jq htop ca-certificates gnupg && break || sleep 10; done
+  - sudo -u rhizome mkdir -p /home/rhizome/.aws
+  - |
+    cat > /home/rhizome/.aws/config << 'EOF'
+    [profile default]
+    region   = ${scw_region}
+    output   = json
+    services = scaleway-s3
+
+    [services scaleway-s3]
+    s3 =
+      endpoint_url = https://s3.${scw_region}.scw.cloud
+    EOF
+  - |
+    cat > /home/rhizome/.aws/credentials << 'EOF'
+    [default]
+    aws_access_key_id = ${scw_access_key}
+    aws_secret_access_key = ${scw_secret_key}
+    EOF
+  - chown -R rhizome:rhizome /home/rhizome/.aws
+  - chmod 600 /home/rhizome/.aws/credentials
+
+  # Install Grafana Alloy
+  - mkdir -p /usr/share/keyrings/
+  - curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor -o /usr/share/keyrings/grafana.key
+  - echo "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main" | tee /etc/apt/sources.list.d/grafana.list
+  - apt-get update
+  - apt-get install -y alloy
+
+  # Enable and start Alloy service
+  - systemctl daemon-reload
+  - systemctl enable alloy
+  - systemctl start alloy
+
+  # Install Node.js 20 LTS
+  - mkdir -p /usr/share/keyrings
+  - curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg
+  - echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+  - apt-get update
+  - apt-get install -y nodejs
+
+  # Create application directories
+  - sudo -u rhizome mkdir -p /home/rhizome/backend
+  - sudo -u rhizome mkdir -p /home/rhizome/backend/uploads
+  - sudo -u rhizome mkdir -p /home/rhizome/logs
+
+  # Download and extract backend package from artifacts bucket
+  - |
+    sudo -u rhizome aws s3 cp \
+      "s3://${artifacts_bucket_name}/backend/rhizome-backend-latest.zip" \
+      /home/rhizome/rhizome-backend-latest.zip \
+      --endpoint-url "https://s3.${scw_region}.scw.cloud" \
+      --region "${scw_region}" \
+      --profile default
+  - sudo -u rhizome unzip -o /home/rhizome/rhizome-backend-latest.zip -d /home/rhizome/
+  - sudo -u rhizome rm /home/rhizome/rhizome-backend-latest.zip
+  - chmod 0755 /home/rhizome/backend/start.sh
+
+  # Verify critical files exist
+  - '[ -f /home/rhizome/backend/start.sh ] || { echo "ERROR: start.sh not found"; exit 1; }'
+  - '[ -f /home/rhizome/backend/package.json ] || { echo "ERROR: package.json not found"; exit 1; }'
+  - '[ -f /home/rhizome/backend/src/server.js ] || { echo "ERROR: src/server.js not found"; exit 1; }'
+
+  # Install npm dependencies BEFORE starting service
+  - echo "Installing npm dependencies..."
+  - cd /home/rhizome/backend && sudo -u rhizome npm ci --production
+
+  # Set up Scaleway CLI for secret access
+  - |
+    cat > /home/rhizome/.scwrc << 'EOF'
+    access_key: ${scw_access_key}
+    secret_key: ${scw_secret_key}
+    default_project_id: $(curl -s http://169.254.42.42/conf | jq -r .tags.project_id || echo "")
+    default_region: ${scw_region}
+    EOF
+  - chown rhizome:rhizome /home/rhizome/.scwrc
+  - chmod 600 /home/rhizome/.scwrc
+
+  # Now that everything is ready, enable and start the service
+  - systemctl daemon-reload
+  - systemctl enable rhizome
+  - systemctl start rhizome
+
+  # Wait a moment for service to start
+  - sleep 10
+
+  # Check service status
+  - systemctl status rhizome --no-pager

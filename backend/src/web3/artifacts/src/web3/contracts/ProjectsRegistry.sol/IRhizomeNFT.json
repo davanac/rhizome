@@ -1,0 +1,85 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IRhizomeNFT",
+  "sourceName": "src/web3/contracts/ProjectsRegistry.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "projectId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "participantId",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "participantFullname",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "participantUsername",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "projectTitle",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "projectUrl",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "imageUrl",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "role",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "contributionPercentage",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "contributionDescription",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "finalizationDate",
+          "type": "string"
+        }
+      ],
+      "name": "mintNFT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

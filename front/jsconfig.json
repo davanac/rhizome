@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@api/*": ["./src/network/api/*"],
+      "@network/*": ["./src/network/*"],
+      "@types/*": ["./src/types/*"],
+      "@hooks/*": ["./src/network/hooks/*"],
+      "@config": ["./src/config/config.js"],
+    },
+  },
+  "include": ["src"]
+}
