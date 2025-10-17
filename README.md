@@ -32,7 +32,7 @@ The easiest way to test Rhizome locally is using Docker Compose:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/rhizome.git
+   git clone https://github.com/davanac/rhizome.git
    cd rhizome
    ```
 
