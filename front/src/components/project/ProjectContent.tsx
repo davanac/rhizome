@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, Feather, Copy, Mail } from "lucide-react"; // Ajout de l'icône Copy
+import { ArrowLeft, Pencil, Feather, Copy, Mail, LogIn } from "lucide-react"; // Ajout de l'icône Copy
 import { Link } from "react-router-dom";
 import { ProjectHeader } from "@/components/ProjectHeader";
 import { ProjectDetailsComponent } from "@/components/project/ProjectDetailsComponent";
 import { LinkedinIcon, YoutubeIcon, GithubIcon, Music2Icon, InstagramIcon, FacebookIcon, GlobeIcon } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSession } from "@/hooks/useSession";
 
 import { updateProjectStatus } from "@/api/projects";
 import { useParams, useNavigate } from "react-router-dom";
@@ -27,8 +29,12 @@ export const ProjectContent = ({
   idWithSlug
 }: ProjectContentProps) => {
   const navigate = useNavigate();
+  const { user } = useSession();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Vérifier si l'utilisateur n'est pas connecté et si le projet est prêt à être signé
+  const showLoginMessage = !user && project.statusId === 3;
 
   const onFreezeProjectHandler = async () => {
     // ... code existant pour geler le projet ...
@@ -146,6 +152,17 @@ export const ProjectContent = ({
             </div>
           )}
         </div>
+
+        {/* Message pour inviter les utilisateurs non connectés à se connecter */}
+        {showLoginMessage && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <LogIn className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-800">Connexion requise</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              Connectez-vous pour pouvoir signer ce projet. Cliquez sur "Se connecter" dans le menu en haut à droite.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <img

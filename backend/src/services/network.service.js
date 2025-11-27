@@ -38,7 +38,7 @@ export async function getNetworkData() {
       LEFT JOIN project_participant_role ppr
         ON pp.role_id = ppr.id
         WHERE p.status_id = 4 AND pr.profile_type_id = 1 AND p.is_visible = true AND u.is_enabled = true
-      ORDER BY p.created_at DESC;
+      ORDER BY p.due_date DESC;
     `;
 
   let queryResponse;

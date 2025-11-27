@@ -63,7 +63,7 @@ export const SignUpStep2 = ({
           required
           value={formData.username}
           onChange={(e) => onChange('username', e.target.value)}
-          placeholder="@votre-nom-utilisateur"
+          placeholder="votre-nom-utilisateur"
         />
       </FormField>
 

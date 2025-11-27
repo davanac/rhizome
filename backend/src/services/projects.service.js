@@ -54,7 +54,7 @@ export const getAllProjects = async (projectStatuses) => {
     LEFT JOIN project_participant_role ppr ON ppr.id = pp.role_id
     LEFT JOIN profile_type pt ON pt.id = pr.profile_type_id
     WHERE u.is_enabled = true OR u.id IS NULL
-    ORDER BY cp.created_at DESC;
+    ORDER BY cp.due_date DESC;
   `;
 
   try {
@@ -691,7 +691,7 @@ export const getProjectsByProfileId = async (profileId, projectStatuses) => {
     WHERE p.id IN (
       SELECT id FROM user_projects
     ) AND u.is_enabled = true
-    ORDER BY p.created_at DESC;
+    ORDER BY p.due_date DESC;
   `;
 
   try {

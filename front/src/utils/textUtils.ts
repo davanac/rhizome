@@ -15,7 +15,17 @@ export function decodeHtmlEntities(text: string | null | undefined): string {
   // Create a temporary textarea element to leverage browser's HTML decoding
   const textarea = document.createElement('textarea');
   textarea.innerHTML = text;
-  return textarea.value;
+  let decoded = textarea.value;
+
+  // Handle double-encoded entities by decoding again if the result changed
+  // and still contains HTML entities
+  while (decoded !== text && /&[#\w]+;/.test(decoded)) {
+    text = decoded;
+    textarea.innerHTML = decoded;
+    decoded = textarea.value;
+  }
+
+  return decoded;
 }
 
 /**

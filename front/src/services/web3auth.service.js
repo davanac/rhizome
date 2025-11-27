@@ -7,9 +7,33 @@ class Web3AuthService {
   constructor() {
     this.web3auth = null;
     this.provider = null;
+    this.isInitializing = false;
+    this.initPromise = null;
   }
 
   async init() {
+    // Prevent multiple initializations
+    if (this.web3auth) {
+      return true;
+    }
+
+    // If already initializing, wait for that to complete
+    if (this.isInitializing && this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.isInitializing = true;
+    this.initPromise = this._doInit();
+
+    try {
+      const result = await this.initPromise;
+      return result;
+    } finally {
+      this.isInitializing = false;
+    }
+  }
+
+  async _doInit() {
     try {
       console.log('🔍 Web3Auth Init - Using network:', Config.WEB3AUTH.NETWORK);
 

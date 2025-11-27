@@ -13,6 +13,7 @@ import { validateProfileForm } from "./utils/formValidation";
 import { useSession } from "@/hooks/useSession";
 import ReRenderer from '@utils/reRenderer';
 import {updateProfile} from "@/api/profiles";
+import { decodeHtmlEntities } from "@/utils/textUtils";
 
 interface EditProfileFormProps {
   onClose: () => void;
@@ -42,8 +43,8 @@ export const EditProfileForm = ({ onClose, onUpdate }: EditProfileFormProps) => 
     firstName: user?.first_name || user?.firstName || "",
     lastName: user?.last_name || user?.lastName || "",
     username: user?.username || "",
-    bio: user?.bio || "",
-    expertise: user?.expertise || "",
+    bio: decodeHtmlEntities(user?.bio) || "",
+    expertise: decodeHtmlEntities(user?.expertise) || "",
     collectif: user?.["collectif-name"] || user?.collectif_name || "",
     avatarUrl: user?.avatar_url || user?.avatarUrl || "",
     bannerUrl: user?.banner_url || user?.bannerUrl || "",

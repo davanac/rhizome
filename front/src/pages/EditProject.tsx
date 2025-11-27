@@ -7,6 +7,7 @@ import { EditProjectLoading } from "@/components/project/EditProjectLoading";
 import {useSession} from "@/hooks/useSession";
 import {updateProject,createProject} from "@/api/projects";
 import Config from "@config";
+import { decodeHtmlEntities } from "@/utils/textUtils";
 
 import {getProjectById} from "@/api/projects";
 
@@ -117,13 +118,13 @@ const EditProject = () => {
   };
 
   const initialFormData = {
-    title: project.title,
-    description: project.description,
+    title: decodeHtmlEntities(project.title),
+    description: decodeHtmlEntities(project.description),
     dueDate: project.dueDate,
     thumbnail: project.thumbnail,
     category: project.category||"",
-    client: project.client,
-    testimonial: project.testimonial || "",
+    client: decodeHtmlEntities(project.client),
+    testimonial: decodeHtmlEntities(project.testimonial) || "",
     links: project.links || [],
     statusId: project.statusId || project.status_id,
     url: project.url || "",
@@ -138,15 +139,15 @@ const EditProject = () => {
       initialParticipants={project.participants?.map(p => ({
         profile: p.profile_id,
         contribution: p.contribution,
-        contributionDescription: p.contributionDescription || ""
+        contributionDescription: decodeHtmlEntities(p.contributionDescription) || ""
       }))}
       initialObservers={project.observers?.map(p => ({
         profile: p.profile_id,
         contribution: p.contribution,
-        contributionDescription: p.contributionDescription || ""
+        contributionDescription: decodeHtmlEntities(p.contributionDescription) || ""
       }))}
       initialTeamLeaderContribution={project.author.contribution}
-      initialTeamLeaderContributionDescription={project.author.contributionDescription || ""}
+      initialTeamLeaderContributionDescription={decodeHtmlEntities(project.author.contributionDescription) || ""}
     />
   );
 };
