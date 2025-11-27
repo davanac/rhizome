@@ -225,7 +225,9 @@ console.log('=== projectId  getProject === projects.controller.js === key: 46626
 console.dir(projectId, { depth: null, colors: true })
 console.log('=================================');
 
-  const projectStatuses = req.user?.userId ? [1, 2, 3, 4] : [4];
+  // Allow unauthenticated users to see frozen projects (status 3) so they can sign
+  // Status 4 = published/finalized (public), Status 3 = frozen (ready to sign)
+  const projectStatuses = req.user?.userId ? [1, 2, 3, 4] : [3, 4];
   try {
     const rawData = await ProjectsService.getProjectById(
       projectId,
