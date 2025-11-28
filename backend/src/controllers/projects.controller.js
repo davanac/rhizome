@@ -540,9 +540,21 @@ export const signProject = async (req, reply) => {
   );
   let project;
   if (checkAllSignatures === true) {
+    const signProcessStartTime = Date.now();
+    console.log(`=== [SIGN] All signatures collected, starting finalization === key: 404490 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
+
     project = await getProject({ params: { projectId } }, reply);
 
-
+    const participantCount = 1 + (project.contributors?.length || 0); // teamLeader + contributors
+    console.log(`=== [SIGN] Project loaded, preparing blockchain data === key: 404491 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Title: ${project.title}`);
+    console.log(`    Participant count: ${participantCount}`);
+    console.log(`    Time since start: ${Date.now() - signProcessStartTime}ms`);
+    console.log('=================================');
 
     const projectChain = project.stringified;
 const projectUrl = escapeForSolidityJSON(project.url);
@@ -593,9 +605,23 @@ const data = {
     console.log('=== data === projects.controller.js === key: 404493 ===');
     console.dir(data, { depth: null, colors: true })
     console.log('=================================');
-    
+
+    const blockchainStartTime = Date.now();
+    console.log(`=== [SIGN] Calling registerProjectOnChain === key: 404494 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Participant count: ${data.participantAddresses.length}`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
 
     const receipt = await BlockchainService.registerProjectOnChain(data);
+
+    const blockchainEndTime = Date.now();
+    console.log(`=== [SIGN] registerProjectOnChain completed === key: 404495 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Success: ${receipt?.success !== false}`);
+    console.log(`    Time elapsed: ${blockchainEndTime - blockchainStartTime}ms`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
 
     console.log("=== receipt === projects.controller.js === key: 045923 ===");
     console.dir(receipt, { depth: null, colors: true });
@@ -633,30 +659,53 @@ const data = {
       console.dir(nftTokenIds, { depth: null, colors: true })
       console.log('=================================');
 
+      const dbStoreStartTime = Date.now();
+      console.log(`=== [SIGN] Starting NFT database storage === key: 404496 ===`);
+      console.log(`    Project ID: ${projectId}`);
+      console.log(`    NFT count: ${nfts[0].length}`);
+      console.log(`    Timestamp: ${new Date().toISOString()}`);
+      console.log('=================================');
+
       for (let i = 0; i < nfts[0].length; i++) {
       try {
         const participantId = participantIds[i];
         const tokenId = nftTokenIds[i];
         const tokenURI = tokenURIs[i];
+
+        const nftStoreStartTime = Date.now();
+        console.log(`=== [SIGN] Storing NFT ${i + 1}/${nfts[0].length} in database === key: 404497 ===`);
+        console.log(`    Participant ID: ${participantId}`);
+        console.log(`    Username: ${usernames[i]}`);
+        console.log(`    Token ID: ${tokenId}`);
+
         const updates = {
           nft_address: Config.WEB3.CONTRACTS_ADDRESSES.rhizomeNFT,
           nft_token_id: tokenId,
           nft_token_uri: tokenURI,
         };
         const insert = await ParticipantsService.setNFT(projectId, participantId, updates);
-        console.log('=== insert === projects.controller.js === key: 936854 ===');
-        console.dir(insert, { depth: null, colors: true })
+
+        console.log(`    Time to store: ${Date.now() - nftStoreStartTime}ms`);
+        console.log(`    Success: ${insert?.success !== false}`);
         console.log('=================================');
       } catch (error) {
-        console.log('=== error === projects.controller.js === key: 735335 ===');
-        console.dir(error, { depth: null, colors: true })
-        console.log('=================================');
-        console.log('=== error === projects.controller.js === key: 213667 ===');
+        console.log(`=== [SIGN] ERROR storing NFT ${i + 1}/${nfts[0].length} === key: 735335 ===`);
+        console.log(`    Participant ID: ${participantIds[i]}`);
+        console.log(`    Username: ${usernames[i]}`);
         console.dir(error, { depth: null, colors: true })
         console.log('=================================');
       }
-        
+
       }
+
+      const dbStoreEndTime = Date.now();
+      console.log(`=== [SIGN] NFT database storage completed === key: 404498 ===`);
+      console.log(`    Project ID: ${projectId}`);
+      console.log(`    NFTs stored: ${nfts[0].length}`);
+      console.log(`    Total time: ${dbStoreEndTime - dbStoreStartTime}ms`);
+      console.log(`    Total process time: ${dbStoreEndTime - signProcessStartTime}ms`);
+      console.log(`    Timestamp: ${new Date().toISOString()}`);
+      console.log('=================================');
     }
   }
 

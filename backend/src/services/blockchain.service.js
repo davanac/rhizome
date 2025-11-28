@@ -130,11 +130,21 @@ export const registerProjectOnChain = async (
     nftRoles,
     nftContributionPercentages,
     nftContributionDescriptions,
-    nftFinalizationDate} = data; 
+    nftFinalizationDate} = data;
 
     console.log('=== data === blockchain.service.js === key: 047463 ===');
     console.dir(data, { depth: null, colors: true })
     console.log('=================================');
+
+    const participantCount = participantAddresses?.length || 0;
+    console.log(`=== [BLOCKCHAIN] Starting registerProject === key: 047464 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Title: ${title}`);
+    console.log(`    Participant count: ${participantCount}`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
+
+    const startTime = Date.now();
 
     const txRegister = await projectRegistryContract.registerProject(
       projectId,
@@ -153,7 +163,26 @@ export const registerProjectOnChain = async (
       nftContributionDescriptions,
       nftFinalizationDate
     );
+
+    const txSubmitTime = Date.now();
+    console.log(`=== [BLOCKCHAIN] Transaction submitted === key: 047465 ===`);
+    console.log(`    TX Hash: ${txRegister.hash}`);
+    console.log(`    Time to submit: ${txSubmitTime - startTime}ms`);
+    console.log('=================================');
+
     const receipt = await txRegister.wait();
+
+    const endTime = Date.now();
+    console.log(`=== [BLOCKCHAIN] Project registered on chain === key: 047466 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Participant count: ${participantCount}`);
+    console.log(`    Block number: ${receipt.blockNumber}`);
+    console.log(`    Gas used: ${receipt.gasUsed?.toString()}`);
+    console.log(`    Time to confirm: ${endTime - txSubmitTime}ms`);
+    console.log(`    Total time: ${endTime - startTime}ms`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
+
     return receipt;
   } catch (error) {
     console.log('=== error === blockchain.service.js === key: 894619 ===');
@@ -171,21 +200,52 @@ export const registerProjectOnChain = async (
 
 export const getNFTsForProject = async (projectId) => {
   try {
+    const startTime = Date.now();
+    console.log(`=== [NFT] Fetching NFTs for project === key: 238860 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
+
     const nfts = await projectRegistryContract.getNFTsForProject(projectId);
-    //return nfts;
+
+    const fetchNftsTime = Date.now();
+    const nftCount = nfts[2]?.length || 0;
+    console.log(`=== [NFT] Retrieved ${nftCount} NFTs from contract === key: 238861 ===`);
+    console.log(`    Time to fetch: ${fetchNftsTime - startTime}ms`);
+    console.log('=================================');
+
     const nftsArray = [];
     const metadataURIs = [];
     for(var i=0; i<nfts[2].length; i++){
       const tokenId = nfts[2][i];
+      const nftStartTime = Date.now();
+
+      console.log(`=== [NFT] Fetching tokenURI ${i + 1}/${nftCount} === key: 238862 ===`);
+      console.log(`    Token ID: ${tokenId.toString()}`);
+      console.log(`    Username: ${nfts[0][i]}`);
+
       const metadataURI = await rhizomeNftContract.tokenURI(tokenId);
       const base64Data = metadataURI.split("base64,")[1];
       const decodedMetadata = Buffer.from(base64Data, "base64").toString("utf8");
       metadataURIs.push(decodedMetadata);
+
+      const nftEndTime = Date.now();
+      console.log(`    Time to fetch tokenURI: ${nftEndTime - nftStartTime}ms`);
+      console.log('=================================');
     }
     nftsArray.push(nfts[0]);
     nftsArray.push(nfts[1]);
     nftsArray.push(nfts[2].map((tokenId) => tokenId.toString()));
     nftsArray.push(metadataURIs);
+
+    const totalTime = Date.now();
+    console.log(`=== [NFT] All NFTs fetched successfully === key: 238863 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    NFT count: ${nftCount}`);
+    console.log(`    Total time: ${totalTime - startTime}ms`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
+
     return nftsArray;
   } catch (error) {
     console.log('=== error === blockchain.service.js === key: 238865 ===');
