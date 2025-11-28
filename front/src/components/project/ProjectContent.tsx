@@ -139,16 +139,6 @@ export const ProjectContent = ({
                   </Button>
                 </>
               )}
-              {project.statusId === 4 && (
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  onClick={onEditClick}
-                >
-                  <Pencil className="w-4 h-4" />
-                  Modifier le projet
-                </Button>
-              )}
             </div>
           )}
         </div>

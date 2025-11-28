@@ -38,8 +38,9 @@ export async function validateProfileData(req, reply) {
         });
       }
       
-      // Sanitize HTML/XSS and dangerous protocols
-      let sanitizedBio = validator.escape(bio);
+      // Remove dangerous protocols (XSS protection)
+      // Note: HTML escaping removed - React handles XSS protection at render time
+      let sanitizedBio = bio;
       sanitizedBio = sanitizedBio.replace(/javascript:/gi, 'removed:');
       sanitizedBio = sanitizedBio.replace(/data:/gi, 'removed:');
       sanitizedBio = sanitizedBio.replace(/vbscript:/gi, 'removed:');
@@ -76,8 +77,9 @@ export async function validateProfileData(req, reply) {
           });
         }
         
-        // Sanitize HTML/XSS and dangerous protocols
-        let sanitized = validator.escape(value);
+        // Remove dangerous protocols (XSS protection)
+        // Note: HTML escaping removed - React handles XSS protection at render time
+        let sanitized = value;
         sanitized = sanitized.replace(/javascript:/gi, 'removed:');
         sanitized = sanitized.replace(/data:/gi, 'removed:');
         sanitized = sanitized.replace(/vbscript:/gi, 'removed:');
@@ -165,8 +167,13 @@ export async function validateProjectData(req, reply) {
         });
       }
       
-      // Sanitize HTML/XSS
-      req.body.title = validator.escape(title);
+      // Remove dangerous protocols (XSS protection)
+      // Note: HTML escaping removed - React handles XSS protection at render time
+      let sanitizedTitle = title;
+      sanitizedTitle = sanitizedTitle.replace(/javascript:/gi, 'removed:');
+      sanitizedTitle = sanitizedTitle.replace(/data:/gi, 'removed:');
+      sanitizedTitle = sanitizedTitle.replace(/vbscript:/gi, 'removed:');
+      req.body.title = sanitizedTitle;
     }
     
     // Validate and sanitize optional text fields
@@ -198,8 +205,13 @@ export async function validateProjectData(req, reply) {
           });
         }
         
-        // Sanitize HTML/XSS
-        req.body[fieldName] = validator.escape(value);
+        // Remove dangerous protocols (XSS protection)
+        // Note: HTML escaping removed - React handles XSS protection at render time
+        let sanitized = value;
+        sanitized = sanitized.replace(/javascript:/gi, 'removed:');
+        sanitized = sanitized.replace(/data:/gi, 'removed:');
+        sanitized = sanitized.replace(/vbscript:/gi, 'removed:');
+        req.body[fieldName] = sanitized;
       }
     }
     

@@ -360,10 +360,16 @@ export const updateProject = async (req, reply) => {
     });
   }
 
-  if (![1, 4].includes(currentProject.status_id)) {
+  if (currentProject.status_id !== 1) {
+    const errorMessage = currentProject.status_id === 3
+      ? "Project is frozen and cannot be modified"
+      : currentProject.status_id === 4
+        ? "Project is completed and cannot be modified"
+        : "Project is not in a modifiable state";
+
     return reply.status(403).send({
       success: false,
-      message: "Project is not in a modifiable state",
+      message: errorMessage,
       errorCode: "project-not-modifiable",
       errorKey: 382692,
     });

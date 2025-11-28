@@ -57,9 +57,25 @@ const EditProject = () => {
 
   if (!project) {
     return (
-      <EditProjectError 
+      <EditProjectError
         title="Projet non trouvé"
         description="Le projet que vous recherchez n'existe pas ou a été supprimé."
+      />
+    );
+  }
+
+  const projectStatusId = project.statusId || project.status_id;
+  if (projectStatusId !== 1) {
+    const statusMessage = projectStatusId === 3
+      ? "Ce projet est figé pour signature et ne peut pas être modifié."
+      : projectStatusId === 4
+        ? "Ce projet est finalisé et ne peut plus être modifié."
+        : "Ce projet n'est pas dans un état modifiable.";
+
+    return (
+      <EditProjectError
+        title="Modification impossible"
+        description={statusMessage}
       />
     );
   }
