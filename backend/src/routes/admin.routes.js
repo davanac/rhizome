@@ -1,6 +1,7 @@
 // path: /src/routes/admin.routes.js
 
 import * as AdminController from "#controllers/admin.controller.js";
+import * as MintingController from "#controllers/minting.controller.js";
 import { authenticateUser, requireAdmin } from "#middleware/auth.middleware.js";
 
 /**
@@ -21,4 +22,11 @@ export default async function adminRoutes(fastify) {
   fastify.get('/projects', AdminController.getAllProjects);
   fastify.get('/projects/:projectId', AdminController.getProjectById);
   fastify.patch('/projects/:projectId/toggle-visibility', AdminController.toggleProjectVisibility);
+
+  // Routes pour la gestion des opérations de minting
+  fastify.get('/minting/operations', MintingController.getAllMintingOperations);
+  fastify.get('/minting/failed', MintingController.getFailedMintingOperations);
+  fastify.get('/minting/:operationId', MintingController.getMintingOperationDetails);
+  fastify.post('/minting/:operationId/retry', MintingController.retryMintingOperation);
+  fastify.get('/projects/:projectId/minting-history', MintingController.getProjectMintingHistory);
 }

@@ -1,5 +1,6 @@
 // path: /src/routes/projects.routes.js
 import * as ProjectsController from "#controllers/projects.controller.js";
+import * as MintingController from "#controllers/minting.controller.js";
 
 import {
   authenticateUser,
@@ -54,6 +55,18 @@ export default async (app) => {
       },
     },
     ProjectsController.getProjectSignatureData
+  );
+
+  // Minting status endpoint - public (anyone can check minting status)
+  app.get(
+    "/:projectId/minting-status",
+    {
+      preHandler: extractUserId,
+      config: {
+        protected: false,
+      },
+    },
+    MintingController.getMintingStatus
   );
 
   // ----------------------------

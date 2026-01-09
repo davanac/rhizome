@@ -7,6 +7,7 @@ import { initDB } from "#database/database.js";
 import { authenticateUser } from "#middleware/auth.middleware.js";
 import CustomLogger from "#src/logger/customLogHandler.js";
 import { runMigrationsOnStartup } from "#database/migrate.js";
+import { startMintingWorker, stopMintingWorker } from "#workers/minting.worker.js";
 
 // Initialisation du logger
 CustomLogger.init({ output: CustomLogger.CONSOLE });
@@ -124,6 +125,33 @@ const start = async () => {
     const host = '0.0.0.0';
     await server.listen({ port, host });
     console.log(`Server listening at http://${host}:${port}`);
+
+    // Start minting worker (unless disabled)
+    if (process.env.ENABLE_MINTING_WORKER !== 'false') {
+      startMintingWorker();
+      console.log('Minting worker started');
+    } else {
+      console.log('Minting worker disabled via ENABLE_MINTING_WORKER=false');
+    }
+
+    // Graceful shutdown handling
+    const shutdown = async (signal) => {
+      console.log(`\n${signal} received. Shutting down gracefully...`);
+
+      // Stop minting worker
+      stopMintingWorker();
+      console.log('Minting worker stopped');
+
+      // Close server
+      await server.close();
+      console.log('Server closed');
+
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
   } catch (err) {
     console.error(err);
     process.exit(1);

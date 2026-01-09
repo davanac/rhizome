@@ -4,7 +4,7 @@
  * Handles user authentication state and navigation actions.
  */
 import { Link, useNavigate } from "react-router-dom";
-import { UserCircle2, LogOut, Users, ChevronDown, UserPlus, Settings, ShieldCheck } from "lucide-react";
+import { UserCircle2, LogOut, Users, ChevronDown, UserPlus, Settings, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
 import { useSession } from '@/hooks/useSession';
@@ -186,6 +186,12 @@ const NavBar = () => {
                         <Link to="/admin/projects" className="flex items-center gap-2">
                           <Settings className="h-4 w-4" />
                           Gestion des projets
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/minting" className="flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          Gestion du minting
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>

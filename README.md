@@ -8,7 +8,7 @@ Built with modern web technologies and deployed on Ethereum Layer 2 networks.
 
 ---
 
-## 🌟 Features
+## 🌟 Featuress
 
 - **🔐 Web3Auth Integration** - Seamless social login (Google, Email, Facebook) with non-custodial wallet management
 - **📋 Project Management** - Create and manage collaborative projects on-chain

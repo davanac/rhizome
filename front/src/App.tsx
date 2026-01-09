@@ -22,6 +22,7 @@ import About from "./pages/About";
 import Users from "./pages/Users";
 import AdminUsers from "./pages/AdminUsers";
 import AdminProjects from "./pages/AdminProjects";
+import AdminMinting from "./pages/AdminMinting";
 import NavBar from "./components/NavBar";
 import { useState } from "react";
 import ReRenderer from "./utils/reRenderer";
@@ -73,6 +74,7 @@ ReRenderer.initRenderer(forceRerender);
                 <Route path="/users" element={<Users />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/projects" element={<AdminProjects />} />
+                <Route path="/admin/minting" element={<AdminMinting />} />
               </Routes>
             </div>
           </BrowserRouter>

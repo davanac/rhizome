@@ -58,6 +58,7 @@
     "#utils/*": "./src/utils/*",
     "#database/*": "./src/database/*",
     "#middleware/*": "./src/middleware/*",
+    "#workers/*": "./src/workers/*",
     "#abis/*": "./src/web3/artifacts/src/web3/contracts/*",
     "#config": "./src/config/config.js"
   }

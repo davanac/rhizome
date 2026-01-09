@@ -3,6 +3,7 @@ import * as ProjectsService from "#services/projects.service.js";
 import * as ProfilesService from "#services/profiles.service.js";
 import * as BlockchainService from "#services/blockchain.service.js";
 import * as ParticipantsService from "#services/participants.service.js";
+import * as MintingService from "#services/minting.service.js";
 
 import Config from "#config";
 import { error } from "console";
@@ -62,7 +63,7 @@ const filterProjectsByUserAccess = async (projects, req) => {
 
 // Récupérer tous les projets
 export const getAllProjects = async (req, reply) => {
-  const projectStatuses = req.user?.userId ? [1, 2, 3, 4] : [4];
+  const projectStatuses = req.user?.userId ? [1, 2, 3, 4, 5, 6] : [4];
 
   try {
     const rawData = await ProjectsService.getAllProjects(projectStatuses);
@@ -227,7 +228,7 @@ console.log('=================================');
 
   // Allow unauthenticated users to see frozen projects (status 3) so they can sign
   // Status 4 = published/finalized (public), Status 3 = frozen (ready to sign)
-  const projectStatuses = req.user?.userId ? [1, 2, 3, 4] : [3, 4];
+  const projectStatuses = req.user?.userId ? [1, 2, 3, 4, 5, 6] : [3, 4, 5, 6];
   try {
     const rawData = await ProjectsService.getProjectById(
       projectId,
@@ -419,7 +420,7 @@ export const updateProjectStatus = async (req, reply) => {
     });
   }
 
-  const projectStatuses = req.user?.userId ? [1, 2, 3, 4] : [4];
+  const projectStatuses = req.user?.userId ? [1, 2, 3, 4, 5, 6] : [4];
   const currentProjects = await ProjectsService.getProjectById(
     projectId,
     projectStatuses
@@ -540,176 +541,88 @@ export const signProject = async (req, reply) => {
   );
   let project;
   if (checkAllSignatures === true) {
-    const signProcessStartTime = Date.now();
-    console.log(`=== [SIGN] All signatures collected, starting finalization === key: 404490 ===`);
+    // All signatures collected - create async minting job
+    console.log(`=== [SIGN] All signatures collected, creating minting job === key: 404490 ===`);
     console.log(`    Project ID: ${projectId}`);
     console.log(`    Timestamp: ${new Date().toISOString()}`);
     console.log('=================================');
 
     project = await getProject({ params: { projectId } }, reply);
 
-    const participantCount = 1 + (project.contributors?.length || 0); // teamLeader + contributors
-    console.log(`=== [SIGN] Project loaded, preparing blockchain data === key: 404491 ===`);
+    const participantCount = 1 + (project.contributors?.length || 0);
+    console.log(`=== [SIGN] Project loaded, preparing minting data === key: 404491 ===`);
     console.log(`    Project ID: ${projectId}`);
     console.log(`    Title: ${project.title}`);
     console.log(`    Participant count: ${participantCount}`);
-    console.log(`    Time since start: ${Date.now() - signProcessStartTime}ms`);
     console.log('=================================');
 
-    const projectChain = project.stringified;
-const projectUrl = escapeForSolidityJSON(project.url);
-const title = escapeForSolidityJSON(project.title);
-const projectHash = project.hash; 
+    // Prepare minting data (same structure as before)
+    const mintingData = {
+      projectId: projectId,
+      projectChain: project.stringified,
+      projectUrl: escapeForSolidityJSON(project.url),
+      title: escapeForSolidityJSON(project.title),
+      projectHash: project.hash,
+      participantAddresses: [project.team_leader.wallet_address.toLowerCase()],
+      participantIds: [project.team_leader.id],
+      participantUsernames: [escapeForSolidityJSON(project.team_leader.username)],
+      participantFullnames: [escapeForSolidityJSON(project.team_leader.first_name + " " + project.team_leader.last_name)],
+      participantSignatures: [project.team_leader.signature],
+      nftImageUrl: escapeForSolidityJSON(project.nftImg || project.nft_img || ""),
+      nftRoles: ["teamLeader"],
+      nftContributionPercentages: [project.team_leader.contribution + "%"],
+      nftContributionDescriptions: [escapeForSolidityJSON(project.team_leader.contribution_description || "no-description")],
+      nftFinalizationDate: escapeForSolidityJSON(project.due_date.toString()),
+    };
 
-const participantAddresses = [project.team_leader.wallet_address.toLowerCase()];
-const participantIds = [project.team_leader.id];
-const participantUsernames = [escapeForSolidityJSON(project.team_leader.username)];
-const participantFullnames = [escapeForSolidityJSON(project.team_leader.first_name + " " + project.team_leader.last_name)];
-const participantSignatures = [project.team_leader.signature];
+    // Add contributors
+    project.contributors.forEach((contributor) => {
+      mintingData.participantAddresses.push(contributor.wallet_address);
+      mintingData.participantIds.push(contributor.id);
+      mintingData.participantUsernames.push(escapeForSolidityJSON(contributor.username));
+      mintingData.participantFullnames.push(escapeForSolidityJSON(contributor.first_name + " " + contributor.last_name));
+      mintingData.participantSignatures.push(contributor.signature);
+      mintingData.nftRoles.push("contributor");
+      mintingData.nftContributionPercentages.push(contributor.contribution + "%");
+      mintingData.nftContributionDescriptions.push(escapeForSolidityJSON(contributor.contribution_description || "no-description"));
+    });
 
-const nftImageUrl = escapeForSolidityJSON(project.nftImg || project.nft_img || "");
-const nftRoles = ["teamLeader"];
-const nftContributionPercentages = [project.team_leader.contribution + "%"];
-const nftContributionDescriptions = [escapeForSolidityJSON(project.team_leader.contribution_description || "no-description")];
-const nftFinalizationDate = escapeForSolidityJSON(project.due_date.toString());
-
-project.contributors.forEach((contributor) => {
-  participantAddresses.push(contributor.wallet_address);
-  participantIds.push(contributor.id);
-  participantUsernames.push(escapeForSolidityJSON(contributor.username));
-  participantFullnames.push(escapeForSolidityJSON(contributor.first_name + " " + contributor.last_name));
-  participantSignatures.push(contributor.signature);
-  nftRoles.push("contributor");
-  nftContributionPercentages.push(contributor.contribution + "%");
-  nftContributionDescriptions.push(escapeForSolidityJSON(contributor.contribution_description || "no-description"));
-});
-
-const data = {
-  projectId: projectId,
-  projectChain,
-  projectUrl,
-  title,
-  projectHash,
-  participantAddresses,
-  participantIds,
-  participantUsernames,
-  participantFullnames,
-  participantSignatures,
-  nftImageUrl,
-  nftRoles,
-  nftContributionPercentages,
-  nftContributionDescriptions,
-  nftFinalizationDate,
-};
-
-    console.log('=== data === projects.controller.js === key: 404493 ===');
-    console.dir(data, { depth: null, colors: true })
+    console.log('=== [SIGN] Minting data prepared === key: 404493 ===');
+    console.dir(mintingData, { depth: null, colors: true });
     console.log('=================================');
 
-    const blockchainStartTime = Date.now();
-    console.log(`=== [SIGN] Calling registerProjectOnChain === key: 404494 ===`);
-    console.log(`    Project ID: ${projectId}`);
-    console.log(`    Participant count: ${data.participantAddresses.length}`);
-    console.log(`    Timestamp: ${new Date().toISOString()}`);
-    console.log('=================================');
+    // Create async minting operation
+    const operationResult = await MintingService.createMintingOperation(projectId, mintingData);
 
-    const receipt = await BlockchainService.registerProjectOnChain(data);
-
-    const blockchainEndTime = Date.now();
-    console.log(`=== [SIGN] registerProjectOnChain completed === key: 404495 ===`);
-    console.log(`    Project ID: ${projectId}`);
-    console.log(`    Success: ${receipt?.success !== false}`);
-    console.log(`    Time elapsed: ${blockchainEndTime - blockchainStartTime}ms`);
-    console.log(`    Timestamp: ${new Date().toISOString()}`);
-    console.log('=================================');
-
-    console.log("=== receipt === projects.controller.js === key: 045923 ===");
-    console.dir(receipt, { depth: null, colors: true });
-    console.log("=================================");
-
-    // Check if blockchain registration failed
-    if (receipt?.success === false) {
-      const errorMessage = receipt.fromError?.code === 'INSUFFICIENT_FUNDS'
-        ? 'Insufficient funds to mint NFTs on blockchain. Please add funds to the wallet.'
-        : 'Failed to register project on blockchain.';
+    if (operationResult.success === false) {
+      console.log(`=== [SIGN] Failed to create minting operation === key: 404494 ===`);
+      console.dir(operationResult, { depth: null, colors: true });
+      console.log('=================================');
 
       return reply.status(500).send({
         success: false,
-        message: errorMessage,
-        errorCode: receipt.errorCode || 'blockchain-registration-failed',
-        errorKey: 412887,
-        fromError: !Config.IN_PROD ? receipt.fromError : null,
+        message: operationResult.message || "Failed to create minting operation",
+        errorCode: operationResult.errorCode || "minting-operation-failed",
+        errorKey: 412888,
+        fromError: !Config.IN_PROD ? operationResult.fromError : null,
       });
     }
 
-    const nfts = await BlockchainService.getNFTsForProject(projectId);
-    console.log("=== nfts === projects.controller.js === key: 485608 ===");
-    console.dir(nfts, { depth: null, colors: true });
-    console.log("=================================");
+    console.log(`=== [SIGN] Minting job created successfully === key: 404495 ===`);
+    console.log(`    Operation ID: ${operationResult.data.id}`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    Timestamp: ${new Date().toISOString()}`);
+    console.log('=================================');
 
-
-
-    if(nfts && nfts.length && nfts[0].length > 0) {
-      const usernames = nfts[0]
-      const participantIds = nfts[1];
-      const nftTokenIds = nfts[2].map((nft) => nft.toString());
-      const tokenURIs = nfts[3];
-
-      console.log('=== nftTokenIds === projects.controller.js === key: 277003 ===');
-      console.dir(nftTokenIds, { depth: null, colors: true })
-      console.log('=================================');
-
-      const dbStoreStartTime = Date.now();
-      console.log(`=== [SIGN] Starting NFT database storage === key: 404496 ===`);
-      console.log(`    Project ID: ${projectId}`);
-      console.log(`    NFT count: ${nfts[0].length}`);
-      console.log(`    Timestamp: ${new Date().toISOString()}`);
-      console.log('=================================');
-
-      for (let i = 0; i < nfts[0].length; i++) {
-      try {
-        const participantId = participantIds[i];
-        const tokenId = nftTokenIds[i];
-        const tokenURI = tokenURIs[i];
-
-        const nftStoreStartTime = Date.now();
-        console.log(`=== [SIGN] Storing NFT ${i + 1}/${nfts[0].length} in database === key: 404497 ===`);
-        console.log(`    Participant ID: ${participantId}`);
-        console.log(`    Username: ${usernames[i]}`);
-        console.log(`    Token ID: ${tokenId}`);
-
-        const updates = {
-          nft_address: Config.WEB3.CONTRACTS_ADDRESSES.rhizomeNFT,
-          nft_token_id: tokenId,
-          nft_token_uri: tokenURI,
-        };
-        const insert = await ParticipantsService.setNFT(projectId, participantId, updates);
-
-        console.log(`    Time to store: ${Date.now() - nftStoreStartTime}ms`);
-        console.log(`    Success: ${insert?.success !== false}`);
-        console.log('=================================');
-      } catch (error) {
-        console.log(`=== [SIGN] ERROR storing NFT ${i + 1}/${nfts[0].length} === key: 735335 ===`);
-        console.log(`    Participant ID: ${participantIds[i]}`);
-        console.log(`    Username: ${usernames[i]}`);
-        console.dir(error, { depth: null, colors: true })
-        console.log('=================================');
-      }
-
-      }
-
-      const dbStoreEndTime = Date.now();
-      console.log(`=== [SIGN] NFT database storage completed === key: 404498 ===`);
-      console.log(`    Project ID: ${projectId}`);
-      console.log(`    NFTs stored: ${nfts[0].length}`);
-      console.log(`    Total time: ${dbStoreEndTime - dbStoreStartTime}ms`);
-      console.log(`    Total process time: ${dbStoreEndTime - signProcessStartTime}ms`);
-      console.log(`    Timestamp: ${new Date().toISOString()}`);
-      console.log('=================================');
-    }
+    // Return 202 Accepted - minting will happen asynchronously
+    return reply.status(202).send({
+      success: true,
+      message: "All signatures collected. Minting process started.",
+      operationId: operationResult.data.id,
+      status: 'processing',
+      signature: result,
+    });
   }
-
-  //const projectId = "104dbcf6-966a-4095-927d-64cd89d22c9f+1";
 
   reply.send(result);
 };
@@ -741,7 +654,7 @@ export const getProjectsByProfileId = async (req, reply) => {
   console.dir(profileId, { depth: null, colors: true })
   console.log('=================================');
 
-  const projectStatuses = req.user?.userId ? [1, 2, 3, 4] : [4];
+  const projectStatuses = req.user?.userId ? [1, 2, 3, 4, 5, 6] : [4];
   try {
     const rawData = await ProjectsService.getProjectsByProfileId(
       profileId,

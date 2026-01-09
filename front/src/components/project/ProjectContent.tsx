@@ -154,6 +154,26 @@ export const ProjectContent = ({
           </Alert>
         )}
 
+        {/* Message de minting en cours */}
+        {project.statusId === 5 && (
+          <Alert className="mb-6 bg-yellow-50 border-yellow-200">
+            <AlertTitle className="text-yellow-800">Minting en cours...</AlertTitle>
+            <AlertDescription className="text-yellow-700">
+              Toutes les signatures ont été collectées. La création des NFTs est en cours sur la blockchain. Cela peut prendre quelques minutes.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Message d'erreur de minting */}
+        {project.statusId === 6 && (
+          <Alert className="mb-6 bg-red-50 border-red-200">
+            <AlertTitle className="text-red-800">Erreur lors du minting</AlertTitle>
+            <AlertDescription className="text-red-700">
+              Une erreur est survenue lors de la création des NFTs. L'équipe technique a été notifiée et va résoudre le problème.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <img
             src={project.thumbnail || project.banner_url}

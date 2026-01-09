@@ -132,7 +132,9 @@ const AdminProjects = () => {
       1: { label: "Brouillon", variant: "secondary" },
       2: { label: "En cours", variant: "default" },
       3: { label: "Gelé", variant: "destructive" },
-      4: { label: "Terminé", variant: "default" }
+      4: { label: "Terminé", variant: "default" },
+      5: { label: "Minting...", variant: "outline" },
+      6: { label: "Erreur", variant: "destructive" }
     };
     const status = statusMap[statusId] || { label: "Inconnu", variant: "secondary" };
     return <Badge variant={status.variant}>{status.label}</Badge>;

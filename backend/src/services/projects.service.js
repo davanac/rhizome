@@ -857,3 +857,51 @@ export const getProjectSignatureData = async (projectId) => {
     };
   }
 };
+
+/**
+ * Updates project status by ID (simple helper for worker)
+ * @param {string} projectId - Project UUID
+ * @param {number} statusId - New status ID (1=inProgress, 3=frozen, 4=completed, 5=processing, 6=error)
+ * @returns {Object} Updated project or error
+ */
+export const updateProjectStatusById = async (projectId, statusId) => {
+  const query = `
+    UPDATE projects
+    SET status_id = $1
+    WHERE id = $2
+    RETURNING id, status_id
+  `;
+
+  try {
+    const result = await pool.query(query, [statusId, projectId]);
+    if (result.rowCount === 0) {
+      return {
+        success: false,
+        message: "Project not found",
+        errorCode: "project-not-found",
+        errorKey: 867630,
+      };
+    }
+
+    console.log(`=== [PROJECT] Status updated === key: 867631 ===`);
+    console.log(`    Project ID: ${projectId}`);
+    console.log(`    New status: ${statusId}`);
+    console.log('=================================');
+
+    return {
+      success: true,
+      data: result.rows[0]
+    };
+  } catch (error) {
+    console.log('=== error === projects.service.js === updateProjectStatusById === key: 867632 ===');
+    console.dir(error, { depth: null, colors: true });
+    console.log('=================================');
+    return {
+      success: false,
+      message: "Error updating project status",
+      errorCode: "update-project-status-failed",
+      errorKey: 867632,
+      fromError: !Config.IN_PROD ? error.message : null,
+    };
+  }
+};

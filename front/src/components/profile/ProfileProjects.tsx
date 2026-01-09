@@ -67,7 +67,7 @@ export const ProfileProjects = ({ username, user }: ProfileProjectsProps) => {
     return {
       inProgress: proj.filter(project => project.status_id === 1),
       delivered: proj.filter(project => project.status_id === 2),
-      frozen: proj.filter(project => project.status_id === 3),
+      frozen: proj.filter(project => project.status_id === 3 || project.status_id === 5 || project.status_id === 6),
       completed: proj.filter(project => project.status_id === 4)
     };
   }, [proj]);
